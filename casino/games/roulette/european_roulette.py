@@ -10,6 +10,7 @@ import casino.utils as utils
 from casino.types import GameContext
 from casino.utils import clear_screen, cprint, cinput, display_topbar
 from casino.accounts import Account
+from casino.stats import GameStats, display_stats
 
 ROULETTE_HEADER = """
 ┌────────────────────────────────────────────────┐
@@ -249,7 +250,7 @@ class Roulette:
         self.valid_numbers = []
 
         self.accounts = accounts
-
+        self.stats = GameStats("European Roulette", self.accounts[0].balance)
         # Current round's bets
         self.bets = {}
         self.winning_value: Optional[tuple[str, str]] = None
@@ -586,8 +587,12 @@ class Roulette:
                 win_amount = bet_amount * win_multiplier
                 account.deposit(win_amount)
                 cprint(f"Player {player_number}: Won {win_amount} coins.")
+                self.stats.wins += 1
+                self.stats.rounds_played += 1
             else:
                 cprint(f"Player {player_number}: Lost {bet_amount} coins.")
+                self.stats.losses += 1
+                self.stats.rounds_played += 1
 
         cprint("Finished payout.")
 
@@ -657,11 +662,11 @@ def play_european_roulette(context: GameContext) -> None:
         choice = cinput("Press [Enter] to start a new round and [q] to quit: ").strip().lower()
 
         if choice in {"q", "quit"}:
-            return
+            break
 
         status = roulette.submit_bets(context)
         if status == "BANKRUPT":
-            return
+            break
 
         roulette.spin_wheel(context)
         roulette.payout()
@@ -672,7 +677,7 @@ def play_european_roulette(context: GameContext) -> None:
         if play_again in {"", "y", "yes"}:
             pass  # next round
         elif play_again in {"n", "no"}:
-            return
+            break
         else:
             play_again = prompt_with_error(
                 ctx=context,
@@ -683,4 +688,7 @@ def play_european_roulette(context: GameContext) -> None:
                 transform=lambda s: s.strip().lower(),
             )
             if play_again in {"n", "no"}:
-                return
+                break
+    roulette.stats.ending_balance = roulette.accounts[0].balance
+    display_stats(roulette.stats)
+    return

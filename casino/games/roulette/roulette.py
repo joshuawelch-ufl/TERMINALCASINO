@@ -7,6 +7,7 @@ import shutil
 import re
 
 from casino.types import GameContext
+from casino.stats import GameStats, display_stats
 from casino.utils import clear_screen, cprint, cinput, display_topbar
 from casino.accounts import Account
 
@@ -166,6 +167,9 @@ class Roulette:
         self.valid_numbers = []
 
         self.accounts = accounts
+
+        #Initalize stats for the game
+        self.stats = GameStats("Roulette", self.accounts[0].balance)
 
         # Current round's bets
         self.bets = {}
@@ -447,8 +451,12 @@ class Roulette:
                 win_amount = bet_amount * win_multiplier
                 self.accounts[i].deposit(win_amount)
                 cprint(f"Player {i+1}: Won {win_amount} coins.")
+                #Update Winning Stats
+                self.stats.wins += 1
             else:
                 cprint(f"Player {i+1}: Lost {bet_amount} coins.")
+                #Update Losing Stats
+                self.stats.losses += 1
             
             i += 1
 
@@ -501,7 +509,8 @@ def play_roulette(context: GameContext) -> None:
         refresh_roulette_topbar(context)
 
         play_again = None
-
+        #Update Stats Information
+        roulette.stats.rounds_played += 1
         while True:
             valid_choices = ["N", "NO", "Y", "YES", ""]
             play_again = cinput("🤵: Would you like to play another round (Y/n): ")
@@ -516,6 +525,7 @@ def play_roulette(context: GameContext) -> None:
             elif play_again == "" or play_again.lower() in {"y", "yes"}:
                 continue_game = True
                 break
-
+    roulette.stats.ending_balance = roulette.accounts[0].balance
+    display_stats(roulette.stats)
     #cprint("Exiting roulette...")
     #sleep(0.5)
